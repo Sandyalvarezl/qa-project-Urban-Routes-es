@@ -1,9 +1,11 @@
 import data
 from selenium import webdriver
-from selenium.webdriver import Keys
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 
 # no modificar
@@ -37,15 +39,24 @@ def retrieve_phone_code(driver) -> str:
 class UrbanRoutesPage:
     from_field = (By.ID, 'from')
     to_field = (By.ID, 'to')
+    button_order_a_taxi = (By.CSS_SELECTOR, ".button.round")
+    confort_price_option =  (By.XPATH, "//div[@class='tcard-title' and text() = 'Comfort']")
 
     def __init__(self, driver):
         self.driver = driver
 
     def set_from(self, from_address):
-        self.driver.find_element(*self.from_field).send_keys(from_address)
+        #self.driver.find_element(*self.from_field).send_keys(from_address)
+        field = WebDriverWait(self.driver, 7).until(EC.presence_of_element_located(self.from_field))
+        field.clear()
+        field.send_keys(from_address)
 
     def set_to(self, to_address):
-        self.driver.find_element(*self.to_field).send_keys(to_address)
+        #self.driver.find_element(*self.from_field).send_keys(from_address)
+        field = WebDriverWait(self.driver, 7).until(EC.presence_of_element_located(self.to_field))
+        field.clear()
+        field.send_keys(to_address)
+
 
     def get_from(self):
         return self.driver.find_element(*self.from_field).get_property('value')
@@ -53,6 +64,22 @@ class UrbanRoutesPage:
     def get_to(self):
         return self.driver.find_element(*self.to_field).get_property('value')
 
+    def set_route(self, from_address, to_address):
+        self.set_from(from_address)
+        self.set_to(to_address)
+
+
+    def get_button_order_a_taxi (self):
+        return WebDriverWait(self.driver, 7).until(EC.element_to_be_clickable(self.button_order_a_taxi))
+
+    def click_on_button_order_a_taxi(self):
+        self.get_button_order_a_taxi().click()
+
+    def get_comfort_price_option(self):
+        return WebDriverWait(self.driver, 7).until(EC.element_to_be_clickable(self.confort_price_option))
+
+    def click_on_confort_price_option(self):
+        self.get_comfort_price_option().click()
 
 
 class TestUrbanRoutes:
@@ -62,10 +89,9 @@ class TestUrbanRoutes:
     @classmethod
     def setup_class(cls):
         # no lo modifiques, ya que necesitamos un registro adicional habilitado para recuperar el código de confirmación del teléfono
-        from selenium.webdriver import DesiredCapabilities
-        capabilities = DesiredCapabilities.CHROME
-        capabilities["goog:loggingPrefs"] = {'performance': 'ALL'}
-        cls.driver = webdriver.Chrome(desired_capabilities=capabilities)
+        options = Options()
+        options.set_capability("goog:loggingPrefs", {'performance': 'ALL'})
+        cls.driver = webdriver.Chrome(service=Service(), options=options)
 
     def test_set_route(self):
         self.driver.get(data.urban_routes_url)
@@ -75,6 +101,23 @@ class TestUrbanRoutes:
         routes_page.set_route(address_from, address_to)
         assert routes_page.get_from() == address_from
         assert routes_page.get_to() == address_to
+
+    def test_choose_comfort_option(self):
+        self.driver.get(data.urban_routes_url)
+        routes_page = UrbanRoutesPage(self.driver)
+        address_from = data.address_from
+        address_to = data.address_to
+        routes_page.set_route(address_from, address_to)
+        assert routes_page.get_from() == address_from
+        assert routes_page.get_to() == address_to
+        page_urban_routes = UrbanRoutesPage(self.driver)
+        page_urban_routes.click_on_button_order_a_taxi()
+        page_urban_routes.click_on_confort_price_option()
+        comfort_rate = page_urban_routes.get_comfort_price_option().text
+        comfort_text = "Comfort"
+        assert comfort_rate in comfort_text
+
+
 
 
     @classmethod
