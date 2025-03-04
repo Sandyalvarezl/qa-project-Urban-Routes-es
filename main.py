@@ -60,12 +60,6 @@ class UrbanRoutesPage:
     taxi_request = (By.ID, "gtx-trans")
 
 
-
-
-
-
-    #close_phone_number_popup = (By.CLASS_NAME, "")
-
     def __init__(self, driver):
         self.driver = driver
 
